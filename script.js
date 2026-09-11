@@ -151,8 +151,8 @@ function triggerDeath(player) {
   state.snake = [];
   state.alive = false;
 
-  if (world.soloMode && !world.respawnTimer) {
-    world.respawnTimer = 70;
+  if (world.soloMode || world.connected) {
+    world.respawnTimer = 8;
   }
 }
 
@@ -191,6 +191,7 @@ function resetGame() {
   world.food = randomFood([...localState.snake, ...remoteState.snake]);
   scoreLocalEl.textContent = String(localState.score);
   scoreRemoteEl.textContent = String(remoteState.score);
+  startCountdown();
 }
 
 function applySettings() {
@@ -210,11 +211,19 @@ function updateCountdownUI() {
   if (world.countdownActive) {
     countdownOverlay.classList.add('visible');
     countdownNumber.textContent = String(world.countdownValue);
+    countdownNumber.style.opacity = '1';
+    countdownNumber.style.transform = 'scale(1)';
+    countdownNumber.style.animation = 'none';
+    void countdownNumber.offsetWidth;
+    countdownNumber.style.animation = 'countdown-pop 0.28s ease-out';
     return;
   }
 
   countdownOverlay.classList.remove('visible');
   countdownNumber.textContent = '3';
+  countdownNumber.style.opacity = '0';
+  countdownNumber.style.transform = 'scale(0.45)';
+  countdownNumber.style.animation = 'none';
 }
 
 function startCountdown() {
@@ -406,7 +415,7 @@ function moveRemoteBot() {
 function step() {
   if (world.countdownActive) {
     const elapsedSeconds = (performance.now() - world.countdownStartedAt) / 1000;
-    const nextValue = Math.max(1, 3 - Math.ceil(elapsedSeconds));
+    const nextValue = Math.max(1, 3 - Math.floor(elapsedSeconds));
     const shouldFinish = elapsedSeconds >= 3;
 
     if (nextValue !== world.countdownValue) {
@@ -431,14 +440,13 @@ function step() {
     if (alivePlayers === 0) {
       if (settings.autoRespawn) {
         if (world.respawnTimer <= 0) {
-          world.respawnTimer = 70;
+          world.respawnTimer = 8;
         }
         world.respawnTimer -= 1;
         updateDeathParticles(localState);
         updateDeathParticles(remoteState);
         if (world.respawnTimer <= 0) {
           resetGame();
-          startCountdown();
         }
       }
     } else {
@@ -462,6 +470,16 @@ function step() {
           direction: localState.direction,
         };
         world.connection.send(JSON.stringify(payload));
+      }
+    }
+
+    if (!localState.alive && !remoteState.alive && settings.autoRespawn) {
+      if (world.respawnTimer <= 0) {
+        world.respawnTimer = 8;
+      }
+      world.respawnTimer -= 1;
+      if (world.respawnTimer <= 0) {
+        resetGame();
       }
     }
 
@@ -729,7 +747,6 @@ function bindControls() {
 
   resetBtn.addEventListener('click', () => {
     resetGame();
-    startCountdown();
     if (world.connection && world.connection.open) {
       world.connection.close();
     }

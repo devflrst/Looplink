@@ -521,11 +521,34 @@ h1 {
   opacity: 1;
 }
 
+.countdown-overlay.visible .countdown-number {
+  opacity: 1;
+  animation: countdown-pop 0.32s ease-out;
+}
+
 .countdown-number {
   font-size: clamp(3.2rem, 7vw, 6rem);
   font-weight: 700;
   color: var(--text);
   text-shadow: 0 0 22px rgba(133, 247, 184, 0.8);
+  opacity: 0;
+  transform: scale(0.45);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+@keyframes countdown-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 #game-canvas {
