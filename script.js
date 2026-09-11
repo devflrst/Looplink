@@ -184,43 +184,30 @@ function triggerDeath(player) {
 function resetGame() {
   world.roundStarted = false;
   const isRightSide = world.connectionRole === 'right';
+  const leftLocalSpawn = [
+    { x: 6, y: 9 },
+    { x: 5, y: 9 },
+    { x: 4, y: 9 },
+    { x: 3, y: 9 },
+  ];
+  const rightLocalSpawn = [
+    { x: 12, y: 9 },
+    { x: 13, y: 9 },
+    { x: 14, y: 9 },
+    { x: 15, y: 9 },
+  ];
 
   if (world.soloMode || world.connected) {
-    if (isRightSide) {
-      localState.snake = [
-        { x: 12, y: 9 },
-        { x: 13, y: 9 },
-        { x: 14, y: 9 },
-        { x: 15, y: 9 },
-      ];
-      localState.direction = { x: -1, y: 0 };
-      localState.nextDirection = { x: -1, y: 0 };
+    const localSpawn = isRightSide ? rightLocalSpawn : leftLocalSpawn;
+    const remoteSpawn = isRightSide ? leftLocalSpawn : rightLocalSpawn;
 
-      remoteState.snake = [
-        { x: 6, y: 9 },
-        { x: 5, y: 9 },
-        { x: 4, y: 9 },
-        { x: 3, y: 9 },
-      ];
-      remoteState.direction = { x: 1, y: 0 };
-    } else {
-      localState.snake = [
-        { x: 6, y: 9 },
-        { x: 5, y: 9 },
-        { x: 4, y: 9 },
-        { x: 3, y: 9 },
-      ];
-      localState.direction = { x: 1, y: 0 };
-      localState.nextDirection = { x: 1, y: 0 };
+    localState.snake = localSpawn.map((segment) => ({ ...segment }));
+    localState.direction = isRightSide ? { x: -1, y: 0 } : { x: 1, y: 0 };
+    localState.nextDirection = { ...localState.direction };
 
-      remoteState.snake = [
-        { x: 12, y: 9 },
-        { x: 13, y: 9 },
-        { x: 14, y: 9 },
-        { x: 15, y: 9 },
-      ];
-      remoteState.direction = { x: -1, y: 0 };
-    }
+    remoteState.snake = remoteSpawn.map((segment) => ({ ...segment }));
+    remoteState.direction = isRightSide ? { x: 1, y: 0 } : { x: -1, y: 0 };
+    remoteState.nextDirection = { ...remoteState.direction };
 
     localState.score = 0;
     localState.alive = true;
@@ -229,20 +216,16 @@ function resetGame() {
     remoteState.alive = true;
     remoteState.deathParticles = [];
   } else {
-    localState.snake = [
-      { x: 6, y: 9 },
-      { x: 5, y: 9 },
-      { x: 4, y: 9 },
-      { x: 3, y: 9 },
-    ];
+    localState.snake = leftLocalSpawn.map((segment) => ({ ...segment }));
     localState.direction = { x: 1, y: 0 };
-    localState.nextDirection = { x: 1, y: 0 };
+    localState.nextDirection = { ...localState.direction };
     localState.score = 0;
     localState.alive = true;
     localState.deathParticles = [];
 
     remoteState.snake = [];
     remoteState.direction = { x: -1, y: 0 };
+    remoteState.nextDirection = { ...remoteState.direction };
     remoteState.score = 0;
     remoteState.alive = false;
     remoteState.deathParticles = [];
@@ -407,6 +390,29 @@ function setDirection(next) {
     if (!world.soloMode && world.connection && world.connection.open) {
       sendPeerAction('input', { direction: next });
     }
+  }
+}
+
+function applyRemoteStateUpdate(payload) {
+  if (!payload) {
+    return;
+  }
+
+  if (Array.isArray(payload.snake)) {
+    remoteState.snake = mirrorSnakeFromPeer(payload.snake);
+  }
+
+  if (payload.direction) {
+    remoteState.direction = mirrorDirection(payload.direction);
+    remoteState.nextDirection = { ...remoteState.direction };
+  }
+
+  if (typeof payload.score !== 'undefined') {
+    remoteState.score = Number(payload.score);
+  }
+
+  if (typeof payload.alive !== 'undefined') {
+    remoteState.alive = Boolean(payload.alive);
   }
 }
 
@@ -830,10 +836,7 @@ function attachConnection(conn) {
       }
 
       if (data.type === 'state-sync') {
-        remoteState.snake = mirrorSnakeFromPeer(data.payload?.snake || remoteState.snake);
-        remoteState.score = Number(data.payload?.score ?? remoteState.score);
-        remoteState.direction = mirrorDirection(data.payload?.direction || remoteState.direction);
-        remoteState.alive = data.payload?.alive ?? true;
+        applyRemoteStateUpdate(data.payload);
         if (data.payload?.food) {
           world.food = {
             x: Number(data.payload.food.x),
@@ -847,9 +850,7 @@ function attachConnection(conn) {
       }
 
       if (data.type === 'snake-state') {
-        remoteState.snake = data.payload?.snake || remoteState.snake;
-        remoteState.score = Number(data.payload?.score ?? remoteState.score);
-        remoteState.direction = data.payload?.direction || remoteState.direction;
+        applyRemoteStateUpdate(data.payload);
         remoteState.alive = true;
         remoteState.name = 'Remote';
         nameRemoteEl.textContent = remoteState.name;
