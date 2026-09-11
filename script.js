@@ -19,6 +19,7 @@ const particlesToggle = document.getElementById('toggle-particles');
 const autoRespawnToggle = document.getElementById('toggle-auto-respawn');
 const speedSelect = document.getElementById('speed-select');
 const botSelect = document.getElementById('bot-select');
+const mobileButtons = document.querySelectorAll('.control-btn');
 
 const settings = {
   glow: true,
@@ -589,6 +590,26 @@ function bindControls() {
       event.preventDefault();
       setDirection(next);
     }
+  });
+
+  mobileButtons.forEach((button) => {
+    const directionMap = {
+      up: { x: 0, y: -1 },
+      down: { x: 0, y: 1 },
+      left: { x: -1, y: 0 },
+      right: { x: 1, y: 0 },
+    };
+
+    const handleDirectionPress = (event) => {
+      event.preventDefault();
+      const next = directionMap[button.dataset.dir];
+      if (next) {
+        setDirection(next);
+      }
+    };
+
+    button.addEventListener('pointerdown', handleDirectionPress);
+    button.addEventListener('touchstart', handleDirectionPress, { passive: false });
   });
 
   newRoomBtn.addEventListener('click', () => {
