@@ -725,6 +725,11 @@ function attachConnection(conn) {
 
   conn.on('open', () => {
     world.connected = true;
+    if (conn.metadata && conn.metadata.role === 'outgoing') {
+      world.connectionRole = 'left';
+    } else {
+      world.connectionRole = 'right';
+    }
     resetGame();
     remoteState.alive = true;
     remoteState.deathParticles = [];
@@ -733,6 +738,9 @@ function attachConnection(conn) {
     arenaStatusEl.textContent = 'синхрон';
     nameRemoteEl.textContent = remoteState.name;
     scoreRemoteEl.textContent = String(remoteState.score);
+    sendPeerAction('role-sync', {
+      role: world.connectionRole === 'left' ? 'right' : 'left',
+    });
     flushRemotePeerBuffer();
     sendPeerAction('food-sync', {
       food: world.food,
@@ -775,6 +783,17 @@ function attachConnection(conn) {
 
       if (data.type === 'round-stop') {
         stopCountdown();
+        return;
+      }
+
+      if (data.type === 'role-sync') {
+        const peerRole = data.payload?.role;
+        if (peerRole === 'left') {
+          world.connectionRole = 'right';
+        } else if (peerRole === 'right') {
+          world.connectionRole = 'left';
+        }
+        resetGame();
         return;
       }
 
