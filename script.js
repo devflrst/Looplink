@@ -64,7 +64,7 @@ const world = {
   peer: null,
   connection: null,
   soloMode: false,
-  localIsGuest: false,
+  connectionRole: 'left',
   respawnTimer: 0,
   countdownActive: false,
   countdownStartedAt: 0,
@@ -161,10 +161,10 @@ function triggerDeath(player) {
 
 function resetGame() {
   world.roundStarted = false;
-  const currentRoleIsGuest = world.localIsGuest || (!!world.connection && (!world.connection.metadata || world.connection.metadata.role !== 'outgoing'));
+  const isRightSide = world.connectionRole === 'right';
 
   if (world.soloMode || world.connected) {
-    if (currentRoleIsGuest) {
+    if (isRightSide) {
       localState.snake = [
         { x: 12, y: 9 },
         { x: 13, y: 9 },
@@ -707,7 +707,7 @@ function initPeer() {
   });
 
   world.peer.on('connection', (conn) => {
-    world.localIsGuest = (!conn.metadata || conn.metadata.role !== 'outgoing');
+    world.connectionRole = 'right';
     attachConnection(conn);
     remoteState.name = 'Guest';
     connectionStatusEl.textContent = 'соединение';
@@ -841,7 +841,7 @@ function connectToPeer() {
     world.connection.close();
   }
 
-  world.localIsGuest = false;
+  world.connectionRole = 'left';
   const conn = world.peer.connect(remoteId, {
     reliable: true,
     metadata: { role: 'outgoing' },
@@ -864,7 +864,7 @@ async function copyPeerId() {
 function enterSoloMode() {
   world.soloMode = true;
   world.connected = false;
-  world.localIsGuest = false;
+  world.connectionRole = 'left';
   if (world.connection && world.connection.open) {
     world.connection.close();
   }
@@ -877,7 +877,7 @@ function enterSoloMode() {
 
 function leaveSoloMode() {
   world.soloMode = false;
-  world.localIsGuest = false;
+  world.connectionRole = 'left';
   world.respawnTimer = 0;
   remoteState.name = 'Ожидание';
   remoteState.alive = false;
