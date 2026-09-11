@@ -68,6 +68,7 @@ const world = {
   countdownActive: false,
   countdownStartedAt: 0,
   countdownValue: 3,
+  roundStarted: false,
 };
 
 let lastTick = 0;
@@ -157,6 +158,8 @@ function triggerDeath(player) {
 }
 
 function resetGame() {
+  world.roundStarted = false;
+
   localState.snake = [
     { x: 6, y: 9 },
     { x: 5, y: 9 },
@@ -232,6 +235,7 @@ function updateCountdownUI() {
 }
 
 function startCountdown() {
+  world.roundStarted = true;
   world.countdownActive = true;
   world.countdownStartedAt = performance.now();
   world.countdownValue = 3;
@@ -242,6 +246,7 @@ function startCountdown() {
 }
 
 function stopCountdown() {
+  world.roundStarted = false;
   world.countdownActive = false;
   world.countdownValue = 3;
   updateCountdownUI();
@@ -459,6 +464,12 @@ function step() {
     }
 
     render();
+    return;
+  }
+
+  if (!world.roundStarted) {
+    render();
+    updateUI();
     return;
   }
 
