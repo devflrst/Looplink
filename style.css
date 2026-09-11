@@ -534,10 +534,11 @@ h1 {
   }
 
   .page-shell {
+    width: 100%;
     border-radius: 14px;
     max-height: none;
     height: auto;
-    min-height: calc(100vh - 20px);
+    min-height: 100vh;
     overflow: visible;
   }
 
@@ -550,6 +551,7 @@ h1 {
     flex-direction: column;
     min-height: 0;
     height: auto;
+    width: 100%;
   }
 
   .side-panel {
@@ -591,6 +593,8 @@ h1 {
     margin: 0 auto;
     position: static;
     touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
   }
 }
 
@@ -601,8 +605,8 @@ h1 {
 
   .page-shell {
     width: 100%;
-    height: calc(100vh - 12px);
-    min-height: calc(100vh - 12px);
+    min-height: 100vh;
+    height: auto;
     border-radius: 12px;
   }
 
@@ -614,7 +618,7 @@ h1 {
 
   .side-panel {
     padding: 10px;
-    max-height: 38vh;
+    max-height: none;
   }
 
   .panel-card {
@@ -630,6 +634,6 @@ h1 {
   }
 
   .board-wrap {
-    width: min(100vw - 18px, 360px);
+    width: min(100vw - 22px, 360px);
   }
 }

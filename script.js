@@ -573,20 +573,14 @@ function leaveSoloMode() {
 }
 
 function bindControls() {
-  let touchStartX = 0;
-  let touchStartY = 0;
+  let isDragging = false;
+  let dragStartX = 0;
+  let dragStartY = 0;
 
-  boardWrap.addEventListener('touchstart', (event) => {
-    const touch = event.touches[0];
-    touchStartX = touch.clientX;
-    touchStartY = touch.clientY;
-  }, { passive: true });
-
-  boardWrap.addEventListener('touchend', (event) => {
-    const touch = event.changedTouches[0];
-    const deltaX = touch.clientX - touchStartX;
-    const deltaY = touch.clientY - touchStartY;
-    const threshold = 20;
+  const updateFromDrag = (clientX, clientY) => {
+    const deltaX = clientX - dragStartX;
+    const deltaY = clientY - dragStartY;
+    const threshold = 12;
 
     if (Math.abs(deltaX) < threshold && Math.abs(deltaY) < threshold) {
       return;
@@ -597,7 +591,38 @@ function bindControls() {
       : { x: 0, y: deltaY > 0 ? 1 : -1 };
 
     setDirection(next);
-  }, { passive: true });
+    dragStartX = clientX;
+    dragStartY = clientY;
+  };
+
+  boardWrap.addEventListener('pointerdown', (event) => {
+    isDragging = true;
+    dragStartX = event.clientX;
+    dragStartY = event.clientY;
+    boardWrap.setPointerCapture?.(event.pointerId);
+    event.preventDefault();
+  }, { passive: false });
+
+  boardWrap.addEventListener('pointermove', (event) => {
+    if (!isDragging) {
+      return;
+    }
+
+    updateFromDrag(event.clientX, event.clientY);
+    event.preventDefault();
+  }, { passive: false });
+
+  boardWrap.addEventListener('pointerup', () => {
+    isDragging = false;
+  });
+
+  boardWrap.addEventListener('pointercancel', () => {
+    isDragging = false;
+  });
+
+  boardWrap.addEventListener('pointerleave', () => {
+    isDragging = false;
+  });
 
   window.addEventListener('keydown', (event) => {
     const keyMap = {
