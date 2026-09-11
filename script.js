@@ -69,6 +69,7 @@ const world = {
   countdownStartedAt: 0,
   countdownValue: 3,
   roundStarted: false,
+  remotePeerBuffer: [],
 };
 
 let lastTick = 0;
@@ -258,19 +259,17 @@ function stopCountdown() {
 function beginLocalRound() {
   resetGame();
   if (world.connection && world.connection.open) {
-    world.connection.send(JSON.stringify({
-      type: 'round-start',
+    sendPeerAction('round-start', {
       startedAt: performance.now() + 160,
-    }));
+    });
   }
   startCountdown();
   if (world.connection && world.connection.open) {
-    world.connection.send(JSON.stringify({
-      type: 'snake-state',
+    sendPeerAction('snake-state', {
       snake: localState.snake,
       score: localState.score,
       direction: localState.direction,
-    }));
+    });
   }
 }
 
@@ -302,11 +301,43 @@ function updateUI() {
   arenaStatusEl.textContent = world.countdownActive ? 'подготовка' : (world.connected ? 'синхрон' : 'готовность');
 }
 
+function flushRemotePeerBuffer() {
+  if (!world.connection || !world.connection.open || !world.remotePeerBuffer.length) {
+    return;
+  }
+
+  const queue = [...world.remotePeerBuffer];
+  world.remotePeerBuffer = [];
+
+  queue.forEach((packet) => {
+    world.connection.send(JSON.stringify(packet));
+  });
+}
+
+function sendPeerAction(type, payload) {
+  const packet = {
+    type,
+    payload,
+    ts: Date.now(),
+  };
+
+  if (world.connection && world.connection.open) {
+    world.connection.send(JSON.stringify(packet));
+    return;
+  }
+
+  world.remotePeerBuffer.push(packet);
+}
+
 function setDirection(next) {
   const isOpposite = localState.direction.x + next.x === 0 && localState.direction.y + next.y === 0;
 
   if (!isOpposite) {
     localState.nextDirection = next;
+
+    if (!world.soloMode && world.connection && world.connection.open) {
+      sendPeerAction('input', { direction: next });
+    }
   }
 }
 
@@ -615,11 +646,11 @@ function attachConnection(conn) {
     arenaStatusEl.textContent = 'синхрон';
     nameRemoteEl.textContent = remoteState.name;
     scoreRemoteEl.textContent = String(remoteState.score);
+    flushRemotePeerBuffer();
     if (world.roundStarted) {
-      conn.send(JSON.stringify({
-        type: 'round-start',
+      sendPeerAction('round-start', {
         startedAt: performance.now() + 160,
-      }));
+      });
     }
     updateUI();
   });
@@ -631,8 +662,16 @@ function attachConnection(conn) {
         return;
       }
 
+      if (data.type === 'input') {
+        if (data.payload && data.payload.direction) {
+          remoteState.nextDirection = data.payload.direction;
+          remoteState.direction = data.payload.direction;
+        }
+        return;
+      }
+
       if (data.type === 'round-start') {
-        const startedAt = Number(data.startedAt) || performance.now() + 160;
+        const startedAt = Number(data.payload?.startedAt) || performance.now() + 160;
         resetGame();
         world.roundStarted = true;
         world.countdownActive = true;
@@ -648,16 +687,16 @@ function attachConnection(conn) {
         return;
       }
 
-      if (data.type !== 'snake-state') {
+      if (data.type === 'snake-state') {
+        remoteState.snake = data.payload?.snake || remoteState.snake;
+        remoteState.score = Number(data.payload?.score ?? remoteState.score);
+        remoteState.direction = data.payload?.direction || remoteState.direction;
+        remoteState.alive = true;
+        remoteState.name = 'Remote';
+        nameRemoteEl.textContent = remoteState.name;
+        scoreRemoteEl.textContent = String(remoteState.score);
         return;
       }
-      remoteState.snake = data.snake;
-      remoteState.score = data.score;
-      remoteState.direction = data.direction;
-      remoteState.alive = true;
-      remoteState.name = 'Remote';
-      nameRemoteEl.textContent = remoteState.name;
-      scoreRemoteEl.textContent = String(remoteState.score);
     } catch (error) {
       console.warn('Peer message parse error', error);
     }
@@ -837,7 +876,7 @@ function bindControls() {
     if (world.countdownActive) {
       stopCountdown();
       if (world.connection && world.connection.open) {
-        world.connection.send(JSON.stringify({ type: 'round-stop' }));
+        sendPeerAction('round-stop', {});
       }
       return;
     }
