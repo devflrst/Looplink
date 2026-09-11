@@ -161,9 +161,10 @@ function triggerDeath(player) {
 
 function resetGame() {
   world.roundStarted = false;
+  const currentRoleIsGuest = world.localIsGuest || (!!world.connection && (!world.connection.metadata || world.connection.metadata.role !== 'outgoing'));
 
   if (world.soloMode || world.connected) {
-    if (world.localIsGuest) {
+    if (currentRoleIsGuest) {
       localState.snake = [
         { x: 12, y: 9 },
         { x: 13, y: 9 },
