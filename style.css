@@ -540,22 +540,7 @@ h1 {
   }
 
   .topbar {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 14px 12px 10px;
-  }
-
-  .topbar-actions {
-    width: 100%;
-    gap: 8px;
-  }
-
-  .topbar-actions > * {
-    flex: 1 1 120px;
-    min-width: 0;
-    padding: 9px 10px;
-    font-size: 0.8rem;
+    display: none;
   }
 
   .game-layout {
@@ -566,7 +551,7 @@ h1 {
     border-right: none;
     border-bottom: 1px solid var(--line);
     padding: 12px;
-    max-height: 42vh;
+    max-height: 38vh;
   }
 
   .game-panel {
@@ -652,20 +637,6 @@ h1 {
     width: 34px;
     height: 34px;
     font-size: 1.1rem;
-  }
-
-  .topbar-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .topbar-actions > * {
-    flex: none;
-    width: auto;
-  }
-
-  .arena-reset-btn {
-    grid-column: 1 / -1;
   }
 
   .side-panel {
