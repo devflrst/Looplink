@@ -20,6 +20,8 @@ const autoRespawnToggle = document.getElementById('toggle-auto-respawn');
 const speedSelect = document.getElementById('speed-select');
 const botSelect = document.getElementById('bot-select');
 const boardWrap = document.querySelector('.board-wrap');
+const countdownOverlay = document.getElementById('countdown-overlay');
+const countdownNumber = document.getElementById('countdown-number');
 
 const settings = {
   glow: true,
@@ -63,6 +65,9 @@ const world = {
   connection: null,
   soloMode: false,
   respawnTimer: 0,
+  countdownActive: false,
+  countdownStartedAt: 0,
+  countdownValue: 3,
 };
 
 let lastTick = 0;
@@ -197,6 +202,28 @@ function applySettings() {
   config.tickMs = Math.round(135 / settings.speed);
 }
 
+function updateCountdownUI() {
+  if (!countdownOverlay || !countdownNumber) {
+    return;
+  }
+
+  if (world.countdownActive) {
+    countdownOverlay.classList.add('visible');
+    countdownNumber.textContent = String(world.countdownValue);
+    return;
+  }
+
+  countdownOverlay.classList.remove('visible');
+  countdownNumber.textContent = '3';
+}
+
+function startCountdown() {
+  world.countdownActive = true;
+  world.countdownStartedAt = performance.now();
+  world.countdownValue = 3;
+  updateCountdownUI();
+}
+
 function updateUI() {
   peerIdEl.textContent = world.peer ? world.peer.id : 'offline';
   nameLocalEl.textContent = localState.name;
@@ -205,11 +232,11 @@ function updateUI() {
   scoreRemoteEl.textContent = String(remoteState.score);
   if (world.soloMode) {
     connectionStatusEl.textContent = 'Играть с ботом';
-    arenaStatusEl.textContent = 'бот';
+    arenaStatusEl.textContent = world.countdownActive ? 'подготовка' : 'бот';
     return;
   }
   connectionStatusEl.textContent = world.connected ? 'подключено' : 'ожидание';
-  arenaStatusEl.textContent = world.connected ? 'синхрон' : 'готовность';
+  arenaStatusEl.textContent = world.countdownActive ? 'подготовка' : (world.connected ? 'синхрон' : 'готовность');
 }
 
 function setDirection(next) {
@@ -377,6 +404,27 @@ function moveRemoteBot() {
 }
 
 function step() {
+  if (world.countdownActive) {
+    const elapsedSeconds = (performance.now() - world.countdownStartedAt) / 1000;
+    const nextValue = Math.max(1, 3 - Math.ceil(elapsedSeconds));
+    const shouldFinish = elapsedSeconds >= 3;
+
+    if (nextValue !== world.countdownValue) {
+      world.countdownValue = nextValue;
+      updateCountdownUI();
+    }
+
+    if (shouldFinish) {
+      world.countdownActive = false;
+      world.countdownValue = 3;
+      updateCountdownUI();
+      updateUI();
+    }
+
+    render();
+    return;
+  }
+
   if (world.soloMode) {
     const alivePlayers = [localState.alive, remoteState.alive].filter(Boolean).length;
 
@@ -390,6 +438,7 @@ function step() {
         updateDeathParticles(remoteState);
         if (world.respawnTimer <= 0) {
           resetGame();
+          startCountdown();
         }
       }
     } else {
@@ -555,6 +604,7 @@ function enterSoloMode() {
   remoteState.alive = true;
   world.respawnTimer = 0;
   resetGame();
+  startCountdown();
   updateUI();
 }
 
@@ -569,6 +619,7 @@ function leaveSoloMode() {
     world.connection.close();
   }
   initPeer();
+  startCountdown();
   updateUI();
 }
 
@@ -694,6 +745,7 @@ function bindControls() {
 
 applySettings();
 resetGame();
+startCountdown();
 updateUI();
 bindControls();
 initPeer();
