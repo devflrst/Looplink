@@ -233,6 +233,17 @@ function startCountdown() {
   updateCountdownUI();
 }
 
+function beginLocalRound() {
+  resetGame();
+  if (world.connection && world.connection.open) {
+    world.connection.send(JSON.stringify({
+      type: 'round-start',
+      startedAt: performance.now() + 160,
+    }));
+  }
+  startCountdown();
+}
+
 function updateUI() {
   peerIdEl.textContent = world.peer ? world.peer.id : 'offline';
   nameLocalEl.textContent = localState.name;
@@ -550,15 +561,33 @@ function attachConnection(conn) {
     remoteState.direction = { x: -1, y: 0 };
     remoteState.alive = true;
     remoteState.deathParticles = [];
+    remoteState.name = 'Remote';
     connectionStatusEl.textContent = 'подключено';
     arenaStatusEl.textContent = 'синхрон';
+    if (!world.countdownActive) {
+      beginLocalRound();
+    }
     updateUI();
   });
 
   conn.on('data', (payload) => {
     try {
       const data = JSON.parse(payload);
-      if (!data || data.type !== 'snake-state') {
+      if (!data) {
+        return;
+      }
+
+      if (data.type === 'round-start') {
+        const startedAt = Number(data.startedAt) || performance.now() + 160;
+        world.countdownActive = true;
+        world.countdownStartedAt = startedAt;
+        world.countdownValue = 3;
+        updateCountdownUI();
+        updateUI();
+        return;
+      }
+
+      if (data.type !== 'snake-state') {
         return;
       }
       remoteState.snake = data.snake;
@@ -746,10 +775,12 @@ function bindControls() {
   });
 
   resetBtn.addEventListener('click', () => {
-    resetGame();
     if (world.connection && world.connection.open) {
-      world.connection.close();
+      beginLocalRound();
+      return;
     }
+    resetGame();
+    startCountdown();
   });
 
   copyBtn.addEventListener('click', () => copyPeerId());
