@@ -272,6 +272,19 @@ function updateUI() {
   nameRemoteEl.textContent = remoteState.name;
   scoreLocalEl.textContent = String(localState.score);
   scoreRemoteEl.textContent = String(remoteState.score);
+
+  if (startRoundBtn) {
+    if (world.countdownActive) {
+      startRoundBtn.textContent = 'Остановить отсчёт';
+    } else if (world.connected) {
+      startRoundBtn.textContent = 'Старт раунда';
+    } else if (world.soloMode) {
+      startRoundBtn.textContent = 'Локальный старт';
+    } else {
+      startRoundBtn.textContent = 'Старт раунда';
+    }
+  }
+
   if (world.soloMode) {
     connectionStatusEl.textContent = 'Играть с ботом';
     arenaStatusEl.textContent = world.countdownActive ? 'подготовка' : 'бот';
