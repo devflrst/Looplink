@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LoopLink — Snake Sync</title>
+    <meta
+      name="description"
+      content="Красивый сайт со змеёй и мультиплеером через peer-to-peer."
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <div class="background-orb" aria-hidden="true"></div>
+      <header class="topbar">
+        <div class="brand-block">
+          <div class="brand-mark">L</div>
+          <div>
+            <p class="eyebrow">networked play</p>
+            <h1>LoopLink</h1>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button id="new-room-btn" class="ghost-button">Создать комнату</button>
+          <button id="solo-btn" class="ghost-button">Играть с ботом</button>
+          <button id="reset-btn" class="ghost-button arena-reset-btn">reset arena</button>
+          <button id="copy-btn" class="solid-button">Копировать ID</button>
+        </div>
+      </header>
+
+      <main class="game-layout">
+        <aside class="panel side-panel">
+          <section class="panel-card">
+            <p class="label">Коммуникация</p>
+            <div class="id-row">
+              <span>Ваш ID</span>
+              <strong id="peer-id">offline</strong>
+            </div>
+            <div class="field-wrap">
+              <label for="peer-input">Подключиться к комнате</label>
+              <input id="peer-input" type="text" placeholder="Введите ID другого игрока" />
+            </div>
+            <button id="connect-btn" class="primary-button">Подключиться</button>
+            <p class="lobby-note">Это приватная комната: обмен ID идёт вручную, без общего списка лобби и без сервера.</p>
+          </section>
+
+          <section class="panel-card compact">
+            <p class="label">Статус</p>
+            <ul class="status-list">
+              <li><span>Сеть</span><strong id="connection-status">ожидание</strong></li>
+              <li><span>Локальный счёт</span><strong id="score-local">0</strong></li>
+              <li><span>Счёт соперника</span><strong id="score-remote">0</strong></li>
+            </ul>
+          </section>
+
+          <section class="panel-card settings-card">
+            <p class="label">Настройки</p>
+            <div class="settings-list">
+              <label class="toggle-row">
+                <input id="toggle-glow" type="checkbox" checked />
+                <span>glow</span>
+              </label>
+              <label class="toggle-row">
+                <input id="toggle-particles" type="checkbox" checked />
+                <span>particles</span>
+              </label>
+              <label class="toggle-row">
+                <input id="toggle-auto-respawn" type="checkbox" checked />
+                <span>auto respawn</span>
+              </label>
+
+              <div class="setting-row">
+                <label for="speed-select">speed</label>
+                <select id="speed-select">
+                  <option value="0.75">0.75x</option>
+                  <option value="1" selected>1.00x</option>
+                  <option value="1.35">1.35x</option>
+                  <option value="1.7">1.70x</option>
+                </select>
+              </div>
+
+              <div class="setting-row">
+                <label for="bot-select">bot</label>
+                <select id="bot-select">
+                  <option value="easy">easy</option>
+                  <option value="normal" selected>normal</option>
+                  <option value="hard">hard</option>
+                </select>
+              </div>
+
+            </div>
+          </section>
+        </aside>
+
+        <section class="game-panel">
+          <div class="hud">
+            <div>
+              <span class="label">local</span>
+              <strong id="name-local">Вы</strong>
+            </div>
+            <div class="hud-center">
+              <span class="label">arena</span>
+              <strong id="arena-status">готовность</strong>
+            </div>
+            <div>
+              <span class="label">remote</span>
+              <strong id="name-remote">Ожидание</strong>
+            </div>
+          </div>
+
+          <div class="board-wrap">
+            <canvas id="game-canvas" width="560" height="560" aria-label="Игра змейка"></canvas>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
