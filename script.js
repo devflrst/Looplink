@@ -604,7 +604,6 @@ function enterSoloMode() {
   remoteState.alive = true;
   world.respawnTimer = 0;
   resetGame();
-  startCountdown();
   updateUI();
 }
 
@@ -619,7 +618,7 @@ function leaveSoloMode() {
     world.connection.close();
   }
   initPeer();
-  startCountdown();
+  resetGame();
   updateUI();
 }
 
@@ -729,11 +728,8 @@ function bindControls() {
   });
 
   resetBtn.addEventListener('click', () => {
-    if (world.soloMode) {
-      resetGame();
-      return;
-    }
     resetGame();
+    startCountdown();
     if (world.connection && world.connection.open) {
       world.connection.close();
     }
@@ -745,7 +741,6 @@ function bindControls() {
 
 applySettings();
 resetGame();
-startCountdown();
 updateUI();
 bindControls();
 initPeer();
