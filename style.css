@@ -543,7 +543,26 @@ h1 {
   }
 
   .topbar {
-    display: none;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 12px 10px;
+  }
+
+  .topbar-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .topbar-actions > * {
+    flex: none;
+    width: auto;
+    min-width: 0;
+    padding: 9px 10px;
+    font-size: 0.8rem;
   }
 
   .game-layout {
