@@ -13,7 +13,7 @@ const newRoomBtn = document.getElementById('new-room-btn');
 const soloBtn = document.getElementById('solo-btn');
 const copyBtn = document.getElementById('copy-btn');
 const connectBtn = document.getElementById('connect-btn');
-const resetBtn = document.getElementById('reset-btn');
+const startRoundBtn = document.getElementById('start-round-btn');
 const glowToggle = document.getElementById('toggle-glow');
 const particlesToggle = document.getElementById('toggle-particles');
 const autoRespawnToggle = document.getElementById('toggle-auto-respawn');
@@ -191,7 +191,6 @@ function resetGame() {
   world.food = randomFood([...localState.snake, ...remoteState.snake]);
   scoreLocalEl.textContent = String(localState.score);
   scoreRemoteEl.textContent = String(remoteState.score);
-  startCountdown();
 }
 
 function applySettings() {
@@ -216,6 +215,9 @@ function updateCountdownUI() {
     countdownNumber.style.animation = 'none';
     void countdownNumber.offsetWidth;
     countdownNumber.style.animation = 'countdown-pop 0.28s ease-out';
+    if (startRoundBtn) {
+      startRoundBtn.textContent = 'Остановить отсчёт';
+    }
     return;
   }
 
@@ -224,6 +226,9 @@ function updateCountdownUI() {
   countdownNumber.style.opacity = '0';
   countdownNumber.style.transform = 'scale(0.45)';
   countdownNumber.style.animation = 'none';
+  if (startRoundBtn) {
+    startRoundBtn.textContent = 'Старт раунда';
+  }
 }
 
 function startCountdown() {
@@ -231,6 +236,18 @@ function startCountdown() {
   world.countdownStartedAt = performance.now();
   world.countdownValue = 3;
   updateCountdownUI();
+  if (startRoundBtn) {
+    startRoundBtn.textContent = 'Остановить отсчёт';
+  }
+}
+
+function stopCountdown() {
+  world.countdownActive = false;
+  world.countdownValue = 3;
+  updateCountdownUI();
+  if (startRoundBtn) {
+    startRoundBtn.textContent = 'Старт раунда';
+  }
 }
 
 function beginLocalRound() {
@@ -564,9 +581,8 @@ function attachConnection(conn) {
     remoteState.name = 'Remote';
     connectionStatusEl.textContent = 'подключено';
     arenaStatusEl.textContent = 'синхрон';
-    if (!world.countdownActive) {
-      beginLocalRound();
-    }
+    nameRemoteEl.textContent = remoteState.name;
+    scoreRemoteEl.textContent = String(remoteState.score);
     updateUI();
   });
 
@@ -584,6 +600,11 @@ function attachConnection(conn) {
         world.countdownValue = 3;
         updateCountdownUI();
         updateUI();
+        return;
+      }
+
+      if (data.type === 'round-stop') {
+        stopCountdown();
         return;
       }
 
@@ -605,12 +626,10 @@ function attachConnection(conn) {
   conn.on('close', () => {
     world.connected = false;
     world.connection = null;
-    remoteState.name = 'Ожидание';
-    remoteState.snake = [];
-    remoteState.alive = false;
-    remoteState.deathParticles = [];
+    remoteState.name = 'Remote';
+    remoteState.alive = remoteState.snake.length > 0;
     connectionStatusEl.textContent = 'ожидание';
-    arenaStatusEl.textContent = 'готовность';
+    arenaStatusEl.textContent = remoteState.alive ? 'синхрон' : 'готовность';
     updateUI();
   });
 }
@@ -774,11 +793,20 @@ function bindControls() {
     applySettings();
   });
 
-  resetBtn.addEventListener('click', () => {
+  startRoundBtn.addEventListener('click', () => {
+    if (world.countdownActive) {
+      stopCountdown();
+      if (world.connection && world.connection.open) {
+        world.connection.send(JSON.stringify({ type: 'round-stop' }));
+      }
+      return;
+    }
+
     if (world.connection && world.connection.open) {
       beginLocalRound();
       return;
     }
+
     resetGame();
     startCountdown();
   });
@@ -789,6 +817,7 @@ function bindControls() {
 
 applySettings();
 resetGame();
+stopCountdown();
 updateUI();
 bindControls();
 initPeer();
