@@ -262,13 +262,18 @@ function beginLocalRound() {
     sendPeerAction('round-start', {
       startedAt: performance.now() + 160,
     });
+    sendPeerAction('food-sync', {
+      food: world.food,
+    });
   }
   startCountdown();
   if (world.connection && world.connection.open) {
-    sendPeerAction('snake-state', {
+    sendPeerAction('state-sync', {
       snake: localState.snake,
       score: localState.score,
       direction: localState.direction,
+      alive: localState.alive,
+      food: world.food,
     });
   }
 }
@@ -329,6 +334,14 @@ function sendPeerAction(type, payload) {
   world.remotePeerBuffer.push(packet);
 }
 
+function syncFoodToPeer() {
+  if (world.connection && world.connection.open) {
+    sendPeerAction('food-sync', {
+      food: world.food,
+    });
+  }
+}
+
 function setDirection(next) {
   const isOpposite = localState.direction.x + next.x === 0 && localState.direction.y + next.y === 0;
 
@@ -362,6 +375,7 @@ function moveLocalSnake() {
     localState.score += 1;
     world.food = randomFood(localState.snake.concat(remoteState.snake));
     scoreLocalEl.textContent = String(localState.score);
+    syncFoodToPeer();
   }
 
   const hitSelf = localState.snake.slice(1).some((segment) => segment.x === nextHead.x && segment.y === nextHead.y);
@@ -370,6 +384,15 @@ function moveLocalSnake() {
   if (hitSelf || hitRemote) {
     triggerDeath('local');
     arenaStatusEl.textContent = 'съеден';
+  }
+
+  if (!world.soloMode && world.connection && world.connection.open) {
+    sendPeerAction('state-sync', {
+      snake: localState.snake,
+      score: localState.score,
+      direction: localState.direction,
+      alive: localState.alive,
+    });
   }
 }
 
@@ -487,6 +510,11 @@ function moveRemoteBot() {
     remoteState.score += 1;
     world.food = randomFood(localState.snake.concat(remoteState.snake));
     scoreRemoteEl.textContent = String(remoteState.score);
+    if (world.connection && world.connection.open) {
+      sendPeerAction('food-sync', {
+        food: world.food,
+      });
+    }
   }
 
   const hitSelf = remoteState.snake.slice(1).some((segment) => segment.x === nextHead.x && segment.y === nextHead.y);
@@ -554,13 +582,12 @@ function step() {
     if (localState.alive) {
       moveLocalSnake();
       if (world.connection && world.connection.open) {
-        const payload = {
-          type: 'snake-state',
+        sendPeerAction('state-sync', {
           snake: localState.snake,
           score: localState.score,
           direction: localState.direction,
-        };
-        world.connection.send(JSON.stringify(payload));
+          alive: localState.alive,
+        });
       }
     }
 
@@ -647,6 +674,9 @@ function attachConnection(conn) {
     nameRemoteEl.textContent = remoteState.name;
     scoreRemoteEl.textContent = String(remoteState.score);
     flushRemotePeerBuffer();
+    sendPeerAction('food-sync', {
+      food: world.food,
+    });
     if (world.roundStarted) {
       sendPeerAction('round-start', {
         startedAt: performance.now() + 160,
@@ -684,6 +714,33 @@ function attachConnection(conn) {
 
       if (data.type === 'round-stop') {
         stopCountdown();
+        return;
+      }
+
+      if (data.type === 'food-sync') {
+        if (data.payload?.food) {
+          world.food = {
+            x: Number(data.payload.food.x),
+            y: Number(data.payload.food.y),
+          };
+        }
+        return;
+      }
+
+      if (data.type === 'state-sync') {
+        remoteState.snake = data.payload?.snake || remoteState.snake;
+        remoteState.score = Number(data.payload?.score ?? remoteState.score);
+        remoteState.direction = data.payload?.direction || remoteState.direction;
+        remoteState.alive = data.payload?.alive ?? true;
+        if (data.payload?.food) {
+          world.food = {
+            x: Number(data.payload.food.x),
+            y: Number(data.payload.food.y),
+          };
+        }
+        remoteState.name = 'Remote';
+        nameRemoteEl.textContent = remoteState.name;
+        scoreRemoteEl.textContent = String(remoteState.score);
         return;
       }
 
