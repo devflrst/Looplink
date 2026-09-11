@@ -354,6 +354,37 @@ function setDirection(next) {
   }
 }
 
+function moveRemoteSnakePrediction() {
+  if (!remoteState.alive || !remoteState.snake.length) {
+    return;
+  }
+
+  remoteState.direction = remoteState.nextDirection || remoteState.direction;
+  const head = { ...remoteState.snake[0] };
+  const nextHead = {
+    x: clampCell(head.x + remoteState.direction.x),
+    y: clampCell(head.y + remoteState.direction.y),
+  };
+
+  remoteState.snake.unshift(nextHead);
+
+  const ateFood = nextHead.x === world.food.x && nextHead.y === world.food.y;
+  if (!ateFood) {
+    remoteState.snake.pop();
+  } else {
+    remoteState.score += 1;
+    world.food = randomFood(localState.snake.concat(remoteState.snake));
+    scoreRemoteEl.textContent = String(remoteState.score);
+  }
+
+  const hitSelf = remoteState.snake.slice(1).some((segment) => segment.x === nextHead.x && segment.y === nextHead.y);
+  const hitLocal = localState.snake.some((segment) => segment.x === nextHead.x && segment.y === nextHead.y);
+
+  if (hitSelf || hitLocal) {
+    triggerDeath('remote');
+  }
+}
+
 function moveLocalSnake() {
   if (!localState.alive) {
     return;
@@ -696,6 +727,8 @@ function attachConnection(conn) {
         if (data.payload && data.payload.direction) {
           remoteState.nextDirection = data.payload.direction;
           remoteState.direction = data.payload.direction;
+          remoteState.alive = true;
+          moveRemoteSnakePrediction();
         }
         return;
       }
