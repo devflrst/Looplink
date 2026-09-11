@@ -264,6 +264,14 @@ function beginLocalRound() {
     }));
   }
   startCountdown();
+  if (world.connection && world.connection.open) {
+    world.connection.send(JSON.stringify({
+      type: 'snake-state',
+      snake: localState.snake,
+      score: localState.score,
+      direction: localState.direction,
+    }));
+  }
 }
 
 function updateUI() {
@@ -607,6 +615,12 @@ function attachConnection(conn) {
     arenaStatusEl.textContent = 'синхрон';
     nameRemoteEl.textContent = remoteState.name;
     scoreRemoteEl.textContent = String(remoteState.score);
+    if (world.roundStarted) {
+      conn.send(JSON.stringify({
+        type: 'round-start',
+        startedAt: performance.now() + 160,
+      }));
+    }
     updateUI();
   });
 
@@ -619,6 +633,8 @@ function attachConnection(conn) {
 
       if (data.type === 'round-start') {
         const startedAt = Number(data.startedAt) || performance.now() + 160;
+        resetGame();
+        world.roundStarted = true;
         world.countdownActive = true;
         world.countdownStartedAt = startedAt;
         world.countdownValue = 3;
