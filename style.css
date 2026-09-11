@@ -43,6 +43,7 @@ body {
   place-items: start center;
   padding: 22px;
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 button,
@@ -524,27 +525,33 @@ h1 {
 
 @media (max-width: 760px) {
   body {
-    padding: 12px;
+    padding: 10px;
   }
 
   .page-shell {
     border-radius: 14px;
     max-height: none;
+    height: calc(100vh - 20px);
+    min-height: calc(100vh - 20px);
   }
 
   .topbar {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
-    padding: 16px 14px 12px;
+    padding: 14px 12px 10px;
   }
 
   .topbar-actions {
     width: 100%;
+    gap: 8px;
   }
 
   .topbar-actions > * {
-    flex: 1 1 140px;
+    flex: 1 1 120px;
+    min-width: 0;
+    padding: 9px 10px;
+    font-size: 0.8rem;
   }
 
   .game-layout {
@@ -554,12 +561,13 @@ h1 {
   .side-panel {
     border-right: none;
     border-bottom: 1px solid var(--line);
-    padding: 14px;
+    padding: 12px;
+    max-height: 42vh;
   }
 
   .game-panel {
     align-items: center;
-    padding: 14px 12px 16px;
+    padding: 12px 8px 14px;
   }
 
   .panel-card,
@@ -569,10 +577,75 @@ h1 {
     width: 100%;
   }
 
+  .hud {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    text-align: left;
+    width: min(100%, 440px);
+  }
+
+  .hud-center {
+    text-align: left;
+  }
+
   .board-wrap {
     width: min(100%, 440px);
     max-width: 100%;
     margin: 0 auto;
     position: static;
+  }
+}
+
+@media (max-width: 520px) {
+  body {
+    padding: 6px;
+  }
+
+  .page-shell {
+    width: 100%;
+    height: calc(100vh - 12px);
+    min-height: calc(100vh - 12px);
+    border-radius: 12px;
+  }
+
+  .brand-mark {
+    width: 34px;
+    height: 34px;
+    font-size: 1.1rem;
+  }
+
+  .topbar-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .topbar-actions > * {
+    flex: none;
+    width: auto;
+  }
+
+  .arena-reset-btn {
+    grid-column: 1 / -1;
+  }
+
+  .side-panel {
+    padding: 10px;
+    max-height: 38vh;
+  }
+
+  .panel-card {
+    padding: 12px 10px;
+  }
+
+  .id-row {
+    font-size: 0.76rem;
+  }
+
+  .lobby-note {
+    font-size: 0.68rem;
+  }
+
+  .board-wrap {
+    width: min(100vw - 18px, 360px);
   }
 }
