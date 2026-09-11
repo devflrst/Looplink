@@ -524,6 +524,11 @@ h1 {
 }
 
 @media (max-width: 760px) {
+  html, body {
+    overflow: auto;
+    height: auto;
+  }
+
   body {
     padding: 10px;
   }
@@ -531,8 +536,9 @@ h1 {
   .page-shell {
     border-radius: 14px;
     max-height: none;
-    height: calc(100vh - 20px);
+    height: auto;
     min-height: calc(100vh - 20px);
+    overflow: visible;
   }
 
   .topbar {
@@ -540,19 +546,25 @@ h1 {
   }
 
   .game-layout {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: auto;
   }
 
   .side-panel {
     border-right: none;
     border-bottom: 1px solid var(--line);
     padding: 12px;
-    max-height: 38vh;
+    max-height: none;
+    overflow: visible;
+    width: 100%;
   }
 
   .game-panel {
     align-items: center;
     padding: 12px 8px 14px;
+    width: 100%;
   }
 
   .panel-card,
