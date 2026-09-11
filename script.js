@@ -19,7 +19,7 @@ const particlesToggle = document.getElementById('toggle-particles');
 const autoRespawnToggle = document.getElementById('toggle-auto-respawn');
 const speedSelect = document.getElementById('speed-select');
 const botSelect = document.getElementById('bot-select');
-const mobileButtons = document.querySelectorAll('.control-btn');
+const boardWrap = document.querySelector('.board-wrap');
 
 const settings = {
   glow: true,
@@ -573,6 +573,32 @@ function leaveSoloMode() {
 }
 
 function bindControls() {
+  let touchStartX = 0;
+  let touchStartY = 0;
+
+  boardWrap.addEventListener('touchstart', (event) => {
+    const touch = event.touches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+  }, { passive: true });
+
+  boardWrap.addEventListener('touchend', (event) => {
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - touchStartX;
+    const deltaY = touch.clientY - touchStartY;
+    const threshold = 20;
+
+    if (Math.abs(deltaX) < threshold && Math.abs(deltaY) < threshold) {
+      return;
+    }
+
+    const next = Math.abs(deltaX) > Math.abs(deltaY)
+      ? { x: deltaX > 0 ? 1 : -1, y: 0 }
+      : { x: 0, y: deltaY > 0 ? 1 : -1 };
+
+    setDirection(next);
+  }, { passive: true });
+
   window.addEventListener('keydown', (event) => {
     const keyMap = {
       ArrowUp: { x: 0, y: -1 },
@@ -590,26 +616,6 @@ function bindControls() {
       event.preventDefault();
       setDirection(next);
     }
-  });
-
-  mobileButtons.forEach((button) => {
-    const directionMap = {
-      up: { x: 0, y: -1 },
-      down: { x: 0, y: 1 },
-      left: { x: -1, y: 0 },
-      right: { x: 1, y: 0 },
-    };
-
-    const handleDirectionPress = (event) => {
-      event.preventDefault();
-      const next = directionMap[button.dataset.dir];
-      if (next) {
-        setDirection(next);
-      }
-    };
-
-    button.addEventListener('pointerdown', handleDirectionPress);
-    button.addEventListener('touchstart', handleDirectionPress, { passive: false });
   });
 
   newRoomBtn.addEventListener('click', () => {
