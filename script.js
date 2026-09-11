@@ -64,6 +64,7 @@ const world = {
   peer: null,
   connection: null,
   soloMode: false,
+  localIsGuest: false,
   respawnTimer: 0,
   countdownActive: false,
   countdownStartedAt: 0,
@@ -161,30 +162,62 @@ function triggerDeath(player) {
 function resetGame() {
   world.roundStarted = false;
 
-  localState.snake = [
-    { x: 6, y: 9 },
-    { x: 5, y: 9 },
-    { x: 4, y: 9 },
-    { x: 3, y: 9 },
-  ];
-  localState.direction = { x: 1, y: 0 };
-  localState.nextDirection = { x: 1, y: 0 };
-  localState.score = 0;
-  localState.alive = true;
-  localState.deathParticles = [];
-
   if (world.soloMode || world.connected) {
-    remoteState.snake = [
-      { x: 12, y: 9 },
-      { x: 13, y: 9 },
-      { x: 14, y: 9 },
-      { x: 15, y: 9 },
-    ];
-    remoteState.direction = { x: -1, y: 0 };
+    if (world.localIsGuest) {
+      localState.snake = [
+        { x: 12, y: 9 },
+        { x: 13, y: 9 },
+        { x: 14, y: 9 },
+        { x: 15, y: 9 },
+      ];
+      localState.direction = { x: -1, y: 0 };
+      localState.nextDirection = { x: -1, y: 0 };
+
+      remoteState.snake = [
+        { x: 6, y: 9 },
+        { x: 5, y: 9 },
+        { x: 4, y: 9 },
+        { x: 3, y: 9 },
+      ];
+      remoteState.direction = { x: 1, y: 0 };
+    } else {
+      localState.snake = [
+        { x: 6, y: 9 },
+        { x: 5, y: 9 },
+        { x: 4, y: 9 },
+        { x: 3, y: 9 },
+      ];
+      localState.direction = { x: 1, y: 0 };
+      localState.nextDirection = { x: 1, y: 0 };
+
+      remoteState.snake = [
+        { x: 12, y: 9 },
+        { x: 13, y: 9 },
+        { x: 14, y: 9 },
+        { x: 15, y: 9 },
+      ];
+      remoteState.direction = { x: -1, y: 0 };
+    }
+
+    localState.score = 0;
+    localState.alive = true;
+    localState.deathParticles = [];
     remoteState.score = 0;
     remoteState.alive = true;
     remoteState.deathParticles = [];
   } else {
+    localState.snake = [
+      { x: 6, y: 9 },
+      { x: 5, y: 9 },
+      { x: 4, y: 9 },
+      { x: 3, y: 9 },
+    ];
+    localState.direction = { x: 1, y: 0 };
+    localState.nextDirection = { x: 1, y: 0 };
+    localState.score = 0;
+    localState.alive = true;
+    localState.deathParticles = [];
+
     remoteState.snake = [];
     remoteState.direction = { x: -1, y: 0 };
     remoteState.score = 0;
@@ -558,7 +591,7 @@ function moveRemoteBot() {
 
 function step() {
   if (world.countdownActive) {
-    const elapsedSeconds = (performance.now() - world.countdownStartedAt) / 1000;
+    const elapsedSeconds = Math.max(0, (performance.now() - world.countdownStartedAt) / 1000);
     const nextValue = Math.max(1, 3 - Math.floor(elapsedSeconds));
     const shouldFinish = elapsedSeconds >= 3;
 
@@ -673,6 +706,7 @@ function initPeer() {
   });
 
   world.peer.on('connection', (conn) => {
+    world.localIsGuest = (!conn.metadata || conn.metadata.role !== 'outgoing');
     attachConnection(conn);
     remoteState.name = 'Guest';
     connectionStatusEl.textContent = 'соединение';
@@ -690,13 +724,7 @@ function attachConnection(conn) {
 
   conn.on('open', () => {
     world.connected = true;
-    remoteState.snake = [
-      { x: 12, y: 9 },
-      { x: 13, y: 9 },
-      { x: 14, y: 9 },
-      { x: 15, y: 9 },
-    ];
-    remoteState.direction = { x: -1, y: 0 };
+    resetGame();
     remoteState.alive = true;
     remoteState.deathParticles = [];
     remoteState.name = 'Remote';
@@ -734,11 +762,10 @@ function attachConnection(conn) {
       }
 
       if (data.type === 'round-start') {
-        const startedAt = Number(data.payload?.startedAt) || performance.now() + 160;
         resetGame();
         world.roundStarted = true;
         world.countdownActive = true;
-        world.countdownStartedAt = startedAt;
+        world.countdownStartedAt = performance.now();
         world.countdownValue = 3;
         updateCountdownUI();
         updateUI();
@@ -813,7 +840,11 @@ function connectToPeer() {
     world.connection.close();
   }
 
-  const conn = world.peer.connect(remoteId, { reliable: true });
+  world.localIsGuest = false;
+  const conn = world.peer.connect(remoteId, {
+    reliable: true,
+    metadata: { role: 'outgoing' },
+  });
   attachConnection(conn);
 }
 
@@ -832,6 +863,7 @@ async function copyPeerId() {
 function enterSoloMode() {
   world.soloMode = true;
   world.connected = false;
+  world.localIsGuest = false;
   if (world.connection && world.connection.open) {
     world.connection.close();
   }
@@ -844,6 +876,7 @@ function enterSoloMode() {
 
 function leaveSoloMode() {
   world.soloMode = false;
+  world.localIsGuest = false;
   world.respawnTimer = 0;
   remoteState.name = 'Ожидание';
   remoteState.alive = false;
