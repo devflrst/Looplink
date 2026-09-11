@@ -79,6 +79,28 @@ function clampCell(value) {
   return Math.max(0, Math.min(config.count - 1, value));
 }
 
+function mirrorDirection(direction) {
+  if (!direction) {
+    return { x: 0, y: 0 };
+  }
+
+  return {
+    x: -direction.x,
+    y: direction.y,
+  };
+}
+
+function mirrorSnakeFromPeer(snake) {
+  if (!Array.isArray(snake)) {
+    return [];
+  }
+
+  return snake.map((segment) => ({
+    x: config.count - 1 - segment.x,
+    y: segment.y,
+  }));
+}
+
 function randomFood(snakeBodies) {
   const occupied = new Set(snakeBodies.flat().map((segment) => `${segment.x}:${segment.y}`));
   const freeCells = [];
@@ -762,8 +784,8 @@ function attachConnection(conn) {
 
       if (data.type === 'input') {
         if (data.payload && data.payload.direction) {
-          remoteState.nextDirection = data.payload.direction;
-          remoteState.direction = data.payload.direction;
+          remoteState.nextDirection = mirrorDirection(data.payload.direction);
+          remoteState.direction = remoteState.nextDirection;
           remoteState.alive = true;
           moveRemoteSnakePrediction();
         }
@@ -808,9 +830,9 @@ function attachConnection(conn) {
       }
 
       if (data.type === 'state-sync') {
-        remoteState.snake = data.payload?.snake || remoteState.snake;
+        remoteState.snake = mirrorSnakeFromPeer(data.payload?.snake || remoteState.snake);
         remoteState.score = Number(data.payload?.score ?? remoteState.score);
-        remoteState.direction = data.payload?.direction || remoteState.direction;
+        remoteState.direction = mirrorDirection(data.payload?.direction || remoteState.direction);
         remoteState.alive = data.payload?.alive ?? true;
         if (data.payload?.food) {
           world.food = {
